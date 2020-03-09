@@ -64,11 +64,11 @@ function obradiLogOut() {
 
 
 // Get channel from API
-function uzmiPodatkeOKanalu(channel) {
+function uzmiPodatkeOKanalu(zadatiKanal) {
   gapi.client.youtube.channels
     .list({
       part: 'snippet,contentDetails,statistics',
-      forUsername: channel
+      forUsername: zadatiKanal
     })
     .then(response => {
       console.log(response);
@@ -90,14 +90,13 @@ function uzmiPodatkeOKanalu(channel) {
         </ul>
         <p>${channel.snippet.description}</p>
         <hr>
-        <a class="btn grey darken-2" target="_blank" href="https://youtube.com/${
-          channel.snippet.customUrl
-        }">Visit Channel</a>
+        <img src="${channel.snippet.thumbnails.default.url}" alt="Logo kanala">
       `;
       prikaziPodatkeOKanalu(output);
 
-      //const playlistId = channel.contentDetails.relatedPlaylists.uploads;
-      //requestVideoPlaylist(playlistId);
+      //sada preuzimamo podatke o video klipovima (plej listu koja sadrzi klipove tog kanala)
+      const playlistId = channel.contentDetails.relatedPlaylists.uploads;
+      zahtevajVideoKlipove(playlistId);
     })
     .catch(err => alert('Nije pronađen kanal sa tim imenom'));
 }
@@ -116,3 +115,37 @@ channelForm.addEventListener('submit', e => {
 
   uzmiPodatkeOKanalu(kanal);
 });
+
+
+function zahtevajVideoKlipove(playlistId) {
+  const parametriZahteva = {
+    playlistId: playlistId,
+    part: 'snippet',
+    maxResults: 10
+  }
+
+  const zahtev = gapi.client.youtube.playlistItems.list(parametriZahteva);
+
+  zahtev.execute(response => {
+    console.log(response);
+
+    const stavkePlejListe = response.result.items;
+    if (stavkePlejListe) {
+        let output = '<h4 class="center-align"> Najnoviji videi </h4>';
+
+        stavkePlejListe.forEach(item => {
+          const videoId = item.snippet.resourceId.videoId;
+          output += `
+            <div class="col s3">
+              <iframe width="100%" height="auto" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+          `;
+        });
+
+        //prikazi video klipove
+        videoContainer.innerHTML = output;
+    } else{
+      videoContainer.innerHTML = "Ovaj kanal nema video klipove."
+    }
+  });
+}
